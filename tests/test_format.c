@@ -126,6 +126,9 @@ int main(void)
     CHECK(strcmp(human(281462092005375ULL), "256.0TiB") == 0);
     /* TiB is the largest unit */
     CHECK(strcmp(human(TIB(2048)), "2048.0TiB") == 0);
+    /* bytes * 10 would overflow 64 bits here */
+    CHECK(strcmp(human(1844674407370955162ULL), "1677721.7TiB") == 0);
+    CHECK(strcmp(human(18446744073709551615ULL), "16777216.0TiB") == 0);
 
     /* rows and headers */
     fmt_header(buf, 0);

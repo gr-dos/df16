@@ -53,9 +53,10 @@ void fmt_human(char *buf, dfsize_t bytes)
         return;
     }
     /* tenths of the unit, rounded up; move up a unit once it would
-     * show as 1024.0 */
+     * show as 1024.0.  Splitting off the remainder keeps bytes * 10
+     * from overflowing for any 64-bit value. */
     for (u = 1; ; u++, div *= 1024) {
-        tenths = (bytes * 10 + div - 1) / div;
+        tenths = bytes / div * 10 + (bytes % div * 10 + div - 1) / div;
         if (tenths < 10240 || u == NUNITS - 1)
             break;
     }
