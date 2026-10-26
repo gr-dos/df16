@@ -8,9 +8,18 @@
  * reach 65535^3 (about 2^48).  dfsize_t must be at least 64 bits;
  * Open Watcom provides unsigned long long for 16-bit targets with
  * integer-only helper routines.
+ *
+ * Smaller C's 16-bit target has no long or long long, so there it is
+ * four 16-bit words, low first, with the arithmetic done by
+ * smallerc/format.c instead of format.c.  DFSIZE_WORDS selects that
+ * for the host tests.
  */
 
+#if defined(__SMALLER_C__) || defined(DFSIZE_WORDS)
+typedef struct { unsigned short w[4]; } dfsize_t;
+#else
 typedef unsigned long long dfsize_t;
+#endif
 
 /* The raw INT 21h AH=36h result. */
 struct diskfree {

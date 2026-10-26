@@ -1,20 +1,47 @@
-/* Host-side tests for format.c. */
+/*
+ * Host-side tests for format.c, or with DFSIZE_WORDS for
+ * smallerc/format.c.  Sizes are written as unsigned long long and
+ * converted with D() and N().
+ */
 
 #include <string.h>
 #include "format.h"
 #include "unit.h"
 
+typedef unsigned long long u64;
+
+#ifdef DFSIZE_WORDS
+static dfsize_t D(u64 v)
+{
+    dfsize_t d;
+    int i;
+
+    for (i = 0; i < 4; i++, v >>= 16)
+        d.w[i] = (unsigned short)v;
+    return d;
+}
+
+static u64 N(dfsize_t d)
+{
+    return (u64)d.w[3] << 48 | (u64)d.w[2] << 32 | (u64)d.w[1] << 16 |
+           d.w[0];
+}
+#else
+#define D(v)  ((dfsize_t)(v))
+#define N(v)  (v)
+#endif
+
 static char buf[FMT_LINESIZE];
 
-static const char *kib(dfsize_t bytes)
+static const char *kib(u64 bytes)
 {
-    fmt_kib(buf, bytes);
+    fmt_kib(buf, D(bytes));
     return buf;
 }
 
-static const char *human(dfsize_t bytes)
+static const char *human(u64 bytes)
 {
-    fmt_human(buf, bytes);
+    fmt_human(buf, D(bytes));
     return buf;
 }
 
@@ -32,7 +59,7 @@ static struct dfsizes sizes(unsigned spc, unsigned avail, unsigned bps,
     return s;
 }
 
-#define KIB(n)  ((dfsize_t)(n) * 1024)
+#define KIB(n)  ((u64)(n) * 1024)
 #define MIB(n)  (KIB(n) * 1024)
 #define GIB(n)  (MIB(n) * 1024)
 #define TIB(n)  (GIB(n) * 1024)
@@ -42,31 +69,31 @@ int main(void)
     struct dfsizes s;
 
     /* decimal */
-    fmt_u64(buf, 0);
+    fmt_u64(buf, D(0));
     CHECK(strcmp(buf, "0") == 0);
-    fmt_u64(buf, 65535);
+    fmt_u64(buf, D(65535));
     CHECK(strcmp(buf, "65535") == 0);
-    fmt_u64(buf, 4294967296ULL);
+    fmt_u64(buf, D(4294967296ULL));
     CHECK(strcmp(buf, "4294967296") == 0);
-    fmt_u64(buf, 18446744073709551615ULL);
+    fmt_u64(buf, D(18446744073709551615ULL));
     CHECK(strcmp(buf, "18446744073709551615") == 0);
 
     /* arithmetic: a 16-bit product would wrap, and so would 32 bits */
     s = sizes(64, 0, 512, 65535);          /* 32 KiB clusters, 2 GiB */
-    CHECK(s.total == 2147450880ULL);
-    CHECK(s.used == s.total && s.avail == 0 && s.pct == 100);
+    CHECK(N(s.total) == 2147450880ULL);
+    CHECK(N(s.used) == N(s.total) && N(s.avail) == 0 && s.pct == 100);
     s = sizes(128, 65535, 512, 65535);     /* 64 KiB clusters: > 4 GiB */
-    CHECK(s.total == 4294901760ULL);
-    CHECK(s.avail == s.total && s.used == 0 && s.pct == 0);
+    CHECK(N(s.total) == 4294901760ULL);
+    CHECK(N(s.avail) == N(s.total) && N(s.used) == 0 && s.pct == 0);
     s = sizes(65535, 65535, 65535, 65535);
-    CHECK(s.total == 281462092005375ULL);  /* 65535^3 */
+    CHECK(N(s.total) == 281462092005375ULL);  /* 65535^3 */
     CHECK(s.pct == 0);
 
     /* typical FAT16 volume: 2 KiB clusters */
     s = sizes(4, 54415, 512, 62453);
-    CHECK(s.total == 127903744ULL);
-    CHECK(s.avail == 111441920ULL);
-    CHECK(s.used == 16461824ULL);
+    CHECK(N(s.total) == 127903744ULL);
+    CHECK(N(s.avail) == 111441920ULL);
+    CHECK(N(s.used) == 16461824ULL);
     CHECK(s.pct == 13);                    /* 12.87% rounds up */
 
     /* percent rounds up: one used cluster of many is 1% */
@@ -81,17 +108,18 @@ int main(void)
 
     /* zero capacity: no percentage */
     s = sizes(0, 0, 512, 100);
-    CHECK(s.total == 0 && s.used == 0 && s.avail == 0 && s.pct == -1);
+    CHECK(N(s.total) == 0 && N(s.used) == 0 && N(s.avail) == 0 &&
+          s.pct == -1);
     s = sizes(4, 0, 512, 0);
-    CHECK(s.total == 0 && s.pct == -1);
+    CHECK(N(s.total) == 0 && s.pct == -1);
     s = sizes(4, 10, 0, 100);
-    CHECK(s.total == 0 && s.pct == -1);
+    CHECK(N(s.total) == 0 && s.pct == -1);
 
     /* more free than total clusters is clamped, never underflows */
     s = sizes(4, 200, 512, 100);
-    CHECK(s.avail == s.total && s.used == 0 && s.pct == 0);
+    CHECK(N(s.avail) == N(s.total) && N(s.used) == 0 && s.pct == 0);
     s = sizes(4, 200, 512, 0);
-    CHECK(s.total == 0 && s.avail == 0 && s.used == 0 && s.pct == -1);
+    CHECK(N(s.total) == 0 && N(s.avail) == 0 && N(s.used) == 0 && s.pct == -1);
 
     /* KiB blocks round up */
     CHECK(strcmp(kib(0), "0") == 0);

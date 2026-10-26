@@ -3,3 +3,4 @@
 *.err
 *.exe
 /build/
+/smallerc/toolchain/

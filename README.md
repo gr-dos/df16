@@ -22,6 +22,11 @@ Requires Open Watcom (tested with the Linux-hosted toolchain).
     make dostest                 # tests/run.sh under DOSBox-X only
     make clean
 
+`make smallerc` builds `dfsc.exe` with Smaller C instead, and
+`make test-smallerc` tests it. This is an experiment, not used for
+releases: see [SMALLERC.md](SMALLERC.md) for the setup, the size
+comparison and the drawbacks.
+
 The unit tests need a C99 host compiler (`HOSTCC`, default `cc`). The
 DOS tests need `dosbox-x` on the host (override with `DOSBOX=`); set
 `KEEP=1` to keep the work directory.
@@ -119,8 +124,11 @@ operands are still processed.
 - `src/drives.c`, `src/drives.h`: the DOS drive calls
 - `tests/test_*.c`: host unit tests (DOS calls mocked in `test_df.c`)
 - `tests/run.sh`: DOS tests, run under DOSBox-X
+- `tests/rows.c`, `tests/rows.sh`: the capacity arithmetic on DOS,
+  compared between compilers (`make test-rows`)
+- `smallerc/`: the optional Smaller C build (see `SMALLERC.md`)
 - `docs/DESIGN.md`: the design
-- `Makefile`: Open Watcom build
+- `Makefile`: Open Watcom build, and the optional Smaller C build
 - `VERSION`: the version, compiled in and printed by `--version`
 
 ## License
