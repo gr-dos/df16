@@ -1,7 +1,7 @@
 # df16
 
 A Unix `df`-style disk space report for 16-bit MS-DOS, built with Open
-Watcom. It shows each drive's total, used and available space and the
+Watcom and [libc16](https://github.com/gr-dos/libc16). It shows each drive's total, used and available space and the
 percentage used.
 
 A plain `df` **never touches A: or B:**, so it does not spin up or
@@ -9,14 +9,21 @@ wait on empty floppy drives. Name a floppy drive (`df a:`) or use `-a`
 to include it.
 
 The resulting `df.exe` is a small-model, real-mode 8086 executable
-(about 15 KB) that runs on any DOS from an original PC up.
+(about 5 KB) that runs on any DOS from an original PC up.
 
 ## Building
 
-Requires Open Watcom (tested with the Linux-hosted toolchain).
+`df.exe` links [libc16](https://github.com/gr-dos/libc16), a C runtime
+for small-model DOS programs, instead of Open Watcom's own, and is
+built with the Open Watcom toolchain that libc16 pins. By default
+`make` runs `scripts/fetch-libc16`, which clones libc16 at the revision
+pinned in that script into `build/libc16` and builds it there; libc16's
+build fetches its Open Watcom snapshot and JWasm into
+`build/libc16/build/tools`. This needs `git`, `curl`, `xz` and a host C
+compiler. To move to a newer libc16, change the pin.
 
-    make                         # uses ~/opt/watcom by default
-    make WATCOM=/path/to/watcom  # or point it elsewhere
+    make                         # fetches libc16 if needed, builds df.exe
+    make LIBC16_ROOT=../libc16   # or use a built local libc16 checkout
     make test                    # host unit tests, then DOS tests
     make unit                    # host unit tests only
     make dostest                 # tests/run.sh under DOSBox-X only
@@ -117,10 +124,12 @@ operands are still processed.
 - `src/df.c`, `src/df.h`: drive selection and the report
 - `src/format.c`, `src/format.h`: capacity arithmetic and formatting
 - `src/drives.c`, `src/drives.h`: the DOS drive calls
+- `src/out.c`, `src/out.h`: writing strings without `printf`
 - `tests/test_*.c`: host unit tests (DOS calls mocked in `test_df.c`)
 - `tests/run.sh`: DOS tests, run under DOSBox-X
 - `docs/DESIGN.md`: the design
-- `Makefile`: Open Watcom build
+- `Makefile`: Open Watcom and libc16 build
+- `scripts/fetch-libc16`: fetches and builds the pinned libc16
 - `VERSION`: the version, compiled in and printed by `--version`
 
 ## License

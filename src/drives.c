@@ -1,4 +1,4 @@
-#include <i86.h>
+#include <dos.h>
 #include "drives.h"
 
 int dos_current_drive(void)
