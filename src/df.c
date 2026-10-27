@@ -1,4 +1,5 @@
 #include "df.h"
+#include "out.h"
 
 static char line[FMT_LINESIZE];
 
@@ -14,11 +15,11 @@ static void put_row(struct report *r, int drive, const struct diskfree *df)
 
     if (r->rows++ == 0) {
         fmt_header(line, r->o->human);
-        fprintf(r->out, "%s\n", line);
+        put(r->out, line, "\n", NULL);
     }
     df_sizes(df, &s);
     fmt_row(line, drive, &s, r->o->human);
-    fprintf(r->out, "%s\n", line);
+    put(r->out, line, "\n", NULL);
 }
 
 int df_run(const struct options *o, int argc, char **argv,
@@ -28,6 +29,7 @@ int df_run(const struct options *o, int argc, char **argv,
     struct diskfree df;
     int i, drive, last, operands = 0, current = -1;
     int rc = RC_OK;
+    char letter[2];
 
     r.o = o;
     r.out = out;
@@ -44,8 +46,10 @@ int df_run(const struct options *o, int argc, char **argv,
             drive = current;
         }
         if (ops->query(drive, &df) != 0) {
-            fprintf(err, "df: %s: drive %c: is invalid or not ready\n",
-                    argv[i], 'A' + drive);
+            letter[0] = (char)('A' + drive);
+            letter[1] = '\0';
+            put(err, "df: ", argv[i], ": drive ", letter,
+                ": is invalid or not ready\n", NULL);
             rc = RC_FAIL;
             continue;
         }
@@ -62,13 +66,13 @@ int df_run(const struct options *o, int argc, char **argv,
             if (ops->query(drive, &df) == 0)
                 put_row(&r, drive, &df);
         if (r.rows == 0) {
-            fprintf(err, "df: no drives found\n");
+            fputs("df: no drives found\n", err);
             rc = RC_FAIL;
         }
     }
 
     if (fflush(out) != 0 || ferror(out)) {
-        fprintf(err, "df: write error\n");
+        fputs("df: write error\n", err);
         rc = RC_FATAL;
     }
     return rc;

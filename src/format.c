@@ -1,10 +1,41 @@
-#include <stdio.h>
 #include <string.h>
 #include "format.h"
 
-/* Columns: drive, size, used, avail, use%.  Each number keeps at least
- * one space before it even if it outgrows its column. */
-#define ROWFMT  "%-5s %14s %10s %10s %5s"
+/* Appends s to p, padded with spaces to width: on the right if left is
+ * nonzero, else on the left.  Returns the new end. */
+static char *field(char *p, const char *s, int width, int left)
+{
+    int n = (int)strlen(s);
+
+    if (!left)
+        for (; n < width; width--)
+            *p++ = ' ';
+    memcpy(p, s, (size_t)n);
+    p += n;
+    if (left)
+        for (; n < width; width--)
+            *p++ = ' ';
+    *p = '\0';
+    return p;
+}
+
+/* Columns: drive (5, left-aligned), size (14), used (10), avail (10),
+ * use% (5), separated by one space.  Each number keeps at least one
+ * space before it even if it outgrows its column. */
+static void row(char *buf, const char *drive, const char *size,
+                const char *used, const char *avail, const char *pct)
+{
+    char *p = field(buf, drive, 5, 1);
+
+    *p++ = ' ';
+    p = field(p, size, 14, 0);
+    *p++ = ' ';
+    p = field(p, used, 10, 0);
+    *p++ = ' ';
+    p = field(p, avail, 10, 0);
+    *p++ = ' ';
+    field(p, pct, 5, 0);
+}
 
 static const char *const units[] = { "B", "KiB", "MiB", "GiB", "TiB" };
 #define NUNITS  (sizeof units / sizeof units[0])
@@ -69,8 +100,7 @@ void fmt_human(char *buf, dfsize_t bytes)
 
 void fmt_header(char *buf, int human)
 {
-    sprintf(buf, ROWFMT, "Drive", human ? "Size" : "1K-blocks",
-            "Used", "Avail", "Use%");
+    row(buf, "Drive", human ? "Size" : "1K-blocks", "Used", "Avail", "Use%");
 }
 
 void fmt_row(char *buf, int drive, const struct dfsizes *s, int human)
@@ -86,7 +116,9 @@ void fmt_row(char *buf, int drive, const struct dfsizes *s, int human)
     fmt(avail, s->avail);
     if (s->pct < 0)
         strcpy(pct, "-");
-    else
-        sprintf(pct, "%d%%", s->pct);
-    sprintf(buf, ROWFMT, name, size, used, avail, pct);
+    else {
+        fmt_u64(pct, (dfsize_t)s->pct);
+        strcat(pct, "%");
+    }
+    row(buf, name, size, used, avail, pct);
 }

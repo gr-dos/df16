@@ -1,5 +1,6 @@
 #include <string.h>
 #include "options.h"
+#include "out.h"
 
 static int is_letter(int c)
 {
@@ -36,6 +37,7 @@ int parse_options(int argc, char **argv, struct options *o, FILE *err)
 {
     int i, endopts = 0;
     const char *a;
+    char opt[2];
 
     o->all = 0;
     o->human = 0;
@@ -45,13 +47,13 @@ int parse_options(int argc, char **argv, struct options *o, FILE *err)
 
         if (endopts || a[0] != '-') {
             if (operand_drive(a) == DRIVE_BAD) {
-                fprintf(err, "df: invalid drive or path '%s'\n", a);
+                put(err, "df: invalid drive or path '", a, "'\n", NULL);
                 return OPT_USAGE;
             }
             continue;
         }
         if (a[1] == '\0') {
-            fprintf(err, "df: invalid option '-'\n");
+            fputs("df: invalid option '-'\n", err);
             return OPT_USAGE;
         }
         if (a[1] == '-') {
@@ -62,7 +64,7 @@ int parse_options(int argc, char **argv, struct options *o, FILE *err)
             else if (same(a, "--version"))
                 return OPT_VERSION;
             else {
-                fprintf(err, "df: unrecognized option '%s'\n", a);
+                put(err, "df: unrecognized option '", a, "'\n", NULL);
                 return OPT_USAGE;
             }
             argv[i] = NULL;
@@ -82,7 +84,9 @@ int parse_options(int argc, char **argv, struct options *o, FILE *err)
             case '?':
                 return OPT_HELP;
             default:
-                fprintf(err, "df: invalid option -- '%c'\n", *a);
+                opt[0] = *a;
+                opt[1] = '\0';
+                put(err, "df: invalid option -- '", opt, "'\n", NULL);
                 return OPT_USAGE;
             }
         }

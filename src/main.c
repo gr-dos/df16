@@ -1,7 +1,8 @@
 /*
  * df - report disk space for DOS drives
  *
- * A Unix df-style free-space report for 16-bit MS-DOS (Open Watcom C).
+ * A Unix df-style free-space report for 16-bit MS-DOS (Open Watcom C
+ * with libc16).
  * A plain "df" never touches A: or B:.
  */
 
@@ -22,7 +23,7 @@ static const struct df_ops dos_ops = {
 
 static void usage(void)
 {
-    printf(
+    fputs(
         "Usage: df [OPTION]... [DRIVE-OR-PATH]...\n"
         "Report disk space for DOS drives.\n"
         "\n"
@@ -38,13 +39,14 @@ static void usage(void)
         "A path selects its drive only; the path itself is not checked.\n"
         "\n"
         "ERRORLEVEL is 0 on success, 1 if a requested drive could not be\n"
-        "read or no drives were found, and 2 for a usage or write error.\n");
+        "read or no drives were found, and 2 for a usage or write error.\n",
+        stdout);
 }
 
 static int finish(void)
 {
     if (fflush(stdout) != 0 || ferror(stdout)) {
-        fprintf(stderr, "df: write error\n");
+        fputs("df: write error\n", stderr);
         return RC_FATAL;
     }
     return RC_OK;
@@ -59,10 +61,10 @@ int main(int argc, char **argv)
         usage();
         return finish();
     case OPT_VERSION:
-        printf("df (dos-df16) %s\n", VERSION);
+        fputs("df (dos-df16) " VERSION "\n", stdout);
         return finish();
     case OPT_USAGE:
-        fprintf(stderr, "Try 'df --help' for more information.\n");
+        fputs("Try 'df --help' for more information.\n", stderr);
         return RC_FATAL;
     }
     return df_run(&o, argc, argv, &dos_ops, stdout, stderr);

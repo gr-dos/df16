@@ -1,7 +1,7 @@
 # df16
 
 A Unix `df`-style disk space report for 16-bit MS-DOS, built with Open
-Watcom. It shows each drive's total, used and available space and the
+Watcom and [libc16](https://github.com/gr-dos/libc16). It shows each drive's total, used and available space and the
 percentage used.
 
 A plain `df` **never touches A: or B:**, so it does not spin up or
@@ -9,14 +9,25 @@ wait on empty floppy drives. Name a floppy drive (`df a:`) or use `-a`
 to include it.
 
 The resulting `df.exe` is a small-model, real-mode 8086 executable
-(about 15 KB) that runs on any DOS from an original PC up.
+(about 5 KB) that runs on any DOS from an original PC up.
 
 ## Building
 
-Requires Open Watcom (tested with the Linux-hosted toolchain).
+`df.exe` links [libc16](https://github.com/gr-dos/libc16), a C runtime
+for small-model DOS programs, instead of Open Watcom's own, and is built
+with the Open Watcom toolchain that libc16 pins. By default `make` runs
+`scripts/fetch-libc16`, which downloads the libc16 release pinned in
+that script (`libc16-VERSION.zip`), checks it against the SHA-256
+written there before unpacking it, and unpacks it into `build/libc16`.
+The release's `tools/fetch-watcom` then fetches the Open Watcom snapshot
+libc16 was built with into `build/tools`, also checked by SHA-256. This
+needs `curl`, `unzip`, `sha256sum` and `xz`. To move to a newer libc16,
+set `version` and `sha256` in `scripts/fetch-libc16` to the new
+release's (its `.sha256` asset), both in the same change (libc16's
+`docs/CONSUMERS.md`, "Using libc16").
 
-    make                         # uses ~/opt/watcom by default
-    make WATCOM=/path/to/watcom  # or point it elsewhere
+    make                         # fetches libc16 if needed, builds df.exe
+    make LIBC16_ROOT=../libc16   # or use a built local libc16 checkout
     make test                    # host unit tests, then DOS tests
     make unit                    # host unit tests only
     make dostest                 # tests/run.sh under DOSBox-X only
@@ -117,10 +128,12 @@ operands are still processed.
 - `src/df.c`, `src/df.h`: drive selection and the report
 - `src/format.c`, `src/format.h`: capacity arithmetic and formatting
 - `src/drives.c`, `src/drives.h`: the DOS drive calls
+- `src/out.c`, `src/out.h`: writing strings without `printf`
 - `tests/test_*.c`: host unit tests (DOS calls mocked in `test_df.c`)
 - `tests/run.sh`: DOS tests, run under DOSBox-X
 - `docs/DESIGN.md`: the design
-- `Makefile`: Open Watcom build
+- `Makefile`: Open Watcom and libc16 build
+- `scripts/fetch-libc16`: fetches and builds the pinned libc16
 - `VERSION`: the version, compiled in and printed by `--version`
 
 ## License
