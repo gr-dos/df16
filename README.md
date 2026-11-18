@@ -117,8 +117,14 @@ operands are still processed.
   on large volumes or later DOS versions the sizes may be wrong.
 - A: and B: are skipped by convention, not by detecting floppy drives.
   A floppy or other removable drive at C: or later is still queried by
-  a plain `df`, and an empty one may be slow or prompt
-  `Abort, Retry, Fail?`.
+  a plain `df`, and an empty one may be slow.
+- On DOS 3.0 and later, a drive that raises a critical error while it is
+  queried (an empty or unready removable drive, for example) does not
+  prompt `Abort, Retry, Fail?`: df answers Fail for it, so the default
+  scan skips the drive and a named drive is reported as not ready. df
+  handles critical errors only during each query; at any other time,
+  such as writing the report to a floppy, DOS prompts as usual. DOS 2.x
+  has no Fail answer, so there df leaves critical errors to DOS.
 - No labels, filesystem types or per-directory usage.
 
 ## Files
@@ -131,6 +137,7 @@ operands are still processed.
 - `src/out.c`, `src/out.h`: writing strings without `printf`
 - `tests/test_*.c`: host unit tests (DOS calls mocked in `test_df.c`)
 - `tests/run.sh`: DOS tests, run under DOSBox-X
+- `tests/int24.c`: DOS test of the critical-error handler
 - `docs/DESIGN.md`: the design
 - `Makefile`: Open Watcom and libc16 build
 - `scripts/fetch-libc16`: downloads the pinned libc16 release ZIP,
