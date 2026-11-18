@@ -133,7 +133,10 @@ operands are still processed.
 - `tests/run.sh`: DOS tests, run under DOSBox-X
 - `docs/DESIGN.md`: the design
 - `Makefile`: Open Watcom and libc16 build
-- `scripts/fetch-libc16`: fetches and builds the pinned libc16
+- `scripts/fetch-libc16`: downloads the pinned libc16 release ZIP,
+  checks its SHA-256 before unpacking, and provides the prebuilt
+  `LIBC16.LIB` and headers (`LIBC16_ROOT` overrides it with a built
+  local checkout)
 - `VERSION`: the version, compiled in and printed by `--version`
 
 ## License
