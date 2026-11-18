@@ -75,8 +75,17 @@ build/test_df: tests/test_df.c tests/unit.h src/df.c src/df.h \
 unit: $(UNIT)
 	@for t in $(UNIT); do echo "$$t"; ./$$t || exit 1; done
 
-dostest: df.exe
-	sh tests/run.sh $(CURDIR)/df.exe
+# DOS test of the critical-error handling in src/drives.c
+build/int24.exe: build/dos/int24.obj build/dos/drives.obj $(LIBC16) $(TOOLS_ENV)
+	$(WATCOM_ENV) && wlink option quiet, nodefaultlibs format dos name $@ \
+	  file build/dos/int24.obj file build/dos/drives.obj library $(LIBC16)
+
+build/dos/int24.obj: tests/int24.c src/drives.h src/format.h $(LIBC16) $(TOOLS_ENV)
+	@mkdir -p build/dos
+	$(WATCOM_ENV) && $(CC) $(CFLAGS) -Isrc -fo=$@ tests/int24.c
+
+dostest: df.exe build/int24.exe
+	sh tests/run.sh $(CURDIR)/df.exe $(CURDIR)/build/int24.exe
 
 test: unit dostest
 

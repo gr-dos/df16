@@ -15,10 +15,14 @@
 # scan never even queries A: or B: is checked by the host unit tests
 # (tests/test_df.c); here it is checked that A: is not reported.
 #
+# INT24.EXE (tests/int24.c) checks the critical-error handler in
+# src/drives.c, which df's own steps cannot reach because DOSBox-X never
+# raises a critical error for its drives.
+#
 # To add a test: add a step to steps.bat (command, then "call rc N")
 # and the matching rc/expect/check lines below.
 #
-# Usage: tests/run.sh [path/to/df.exe]
+# Usage: tests/run.sh [path/to/df.exe [path/to/int24.exe]]
 # Environment: DOSBOX (default dosbox-x), KEEP=1 to keep the work
 #              directory.
 
@@ -26,10 +30,12 @@ set -u
 
 top=$(cd "$(dirname "$0")/.." && pwd)
 exe=${1:-$top/df.exe}
+int24=${2:-$top/build/int24.exe}
 DOSBOX=${DOSBOX:-dosbox-x}
 
 command -v "$DOSBOX" >/dev/null || { echo "$DOSBOX not found" >&2; exit 2; }
 [ -f "$exe" ] || { echo "$exe not found" >&2; exit 2; }
+[ -f "$int24" ] || { echo "$int24 not found" >&2; exit 2; }
 
 work=$(mktemp -d "${TMPDIR:-/tmp}/dosdf.XXXXXX")
 pass=0
@@ -43,6 +49,7 @@ export LC_ALL
 cd "$work" || exit 2
 mkdir c d a
 cp "$exe" c/df.exe
+cp "$int24" c/int24.exe
 
 cat > c/rc.bat <<'EOS'
 @echo off
@@ -125,6 +132,9 @@ df --version >o28.txt
 call rc 28
 df --VERSION >o29.txt
 call rc 29
+rem --- critical-error handler
+int24 >o30.txt
+call rc 30
 EOS
 
 SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy timeout 300 \
@@ -313,6 +323,12 @@ for n in 28 29; do
 df (dos-df16) $(cat "$top/VERSION")
 EOF
 done
+
+# critical-error handler (tests/int24.c)
+rc 30 0
+expect 30 <<EOF
+ok 8
+EOF
 
 # ------------------------------------------------------------------
 

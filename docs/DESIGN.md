@@ -95,13 +95,23 @@ For drive indexes `2` through `min(count, 26)-1` (C: onward), attempt the free-s
 
 ### 4.3 `-a` and explicit operands
 
-With `-a` and no operands, scan A: through the upper bound, accepting that empty floppy drives may prompt, fail, or take time.
+With `-a` and no operands, scan A: through the upper bound, accepting that empty floppy drives may fail or take time (see 4.5).
 
 For explicitly requested drives, query exactly those drives, including A: or B:. Do not perform a preliminary media probe that would duplicate accesses.
 
 ### 4.4 Limitation
 
 A: and B: are conventionally floppy letters, not an infallible hardware classification. A floppy-like or removable device mapped to C: or later may still be slow to query. The MVP deliberately uses the predictable DOS drive-letter convention rather than complex device-type detection.
+
+### 4.5 Critical errors
+
+Querying an empty or unready removable drive can make DOS raise a critical error (`INT 24h`), whose default handler prompts `Abort, Retry, Fail?` and waits for a key, so an unattended scan would hang.
+
+On DOS 3.0 and later, `dos_query` installs its own `INT 24h` handler (with `INT 21h AH=25h`, after saving the previous vector with `AH=35h`) just before the `AH=36h` call and restores the previous vector as soon as the call returns. The handler answers Fail (`AL=3`), leaves every other register as it found it and calls nothing, since DOS is not reentrant during a critical error. The query then returns `AX=FFFFh` and the drive is treated like any other unusable drive: skipped by the default scan, an error on stderr and `ERRORLEVEL` 1 when named.
+
+Critical errors outside a query, such as writing the report to a floppy, still reach the previous handler. If df is ended during a query (Ctrl-Break), DOS restores `INT 24h` from the PSP. DOS 2.x has no Fail answer, so there the handler is not installed and DOS's own handling applies.
+
+DOSBox-X never raises a critical error for its drives, so the DOS tests (`tests/int24.c`) check the handler by raising `INT 24h` directly and check that `dos_query` leaves the vector as it found it; the no-prompt behaviour itself is checked on real hardware (9.3).
 
 ## 5. Disk-space API
 
@@ -217,6 +227,7 @@ Test portable parsing and formatting independently of DOS:
 - Run `DF .` and `DF C:\\SOME\\PATH`; confirm correct drive selection.
 - Run `DF -H` and inspect output on an 80-column display.
 - Optionally run `DF A:` with a known-good floppy to validate explicit floppy support.
+- Run `DF A:` and `DF -A` with no floppy inserted; confirm there is no `Abort, Retry, Fail?` prompt, `DF A:` reports A: as not ready with `ERRORLEVEL` 1, and `DF -A` skips A: and reports the other drives.
 - Confirm clean execution on the NuXT NEC V20 and MS-DOS 6.22.
 
 ## 10. Acceptance criteria
